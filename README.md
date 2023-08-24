@@ -1,2 +1,2 @@
 # FetchMyEpicToken
-Retrieve OAuth token from Epic systems (MyChart) for use within scripts
+This app enables patients to login to any Epic production system (think "MyChart") in order to obtain access tokens for making FHIR API calls. The tokens can then be used within scripts to process our Epic health data using the FHIR API. Scripts can be authored in a variety of languages, including bash/curl, Python, Javascript, etc. – essentially any language that provides methods for making REST-based API calls. You can find basic instructions for writing scripts as well as simple script examples on the HowTo page.
