@@ -1,0 +1,26 @@
+<!--#include virtual="/header.html" -->
+
+<h2>Contact Me</h2>
+<div class="half">
+<form method="POST" action="contact.cgi">
+	<input type="text" name="Contact" placeholder="Your name" required />
+	<input type="email" name="Email" placeholder="Your email address" required />
+	<textarea rows=5 name="Note" placeholder="What's your question?"></textarea>
+	To continue, move slider to the right <span style="font-size: 200%;">&rarr;</span>
+	<input type="range" min="0" max="100" step="10" id="slider" value="0" />
+	<div id="output"> </div>
+</form>
+</div>
+<script>
+	let output = document.getElementById("output");
+	let input = document.getElementById("slider");
+	input.addEventListener("input", (event) => {
+	// event.target returns the targetted element on which the input event is triggered.
+	// event.target.value returns the value of the targetted element
+	if (+event.target.value >= 100) {
+		output.innerHTML = '<input type="submit" name="Action" value="Send" />';
+	}
+})
+</script>
+
+<!--#include virtual="/footer.html" -->

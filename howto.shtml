@@ -1,0 +1,69 @@
+<!--#include virtual="/header.html" -->
+
+<h1>How to make FHIR API calls</h1>
+After logging into your Epic system, click the "Copy Env" button to generate settings for several shell variables.  Be sure to select the correct button
+depending on whether you're working on Linux or Windows. Afterwards, just open a bash/CMD window, paste in the variable assigments, then try executing the examples below.
+If you encounter any problems, or have questions just click on the <a href="/contact.shtml">"Contact Me"</a> link above and drop me a note.
+
+<h2>bash/curl</h2>
+Copy/paste the correct curl command into your terminal, and hit enter.
+<blockquote><pre><code>
+# Linux:
+curl -H "Authorization: Bearer ${OAUTH_TOKEN}" -H "Accept: application/json+fhir" "${APIBASE}/Observation?_count=3&patient=${PATIENT}&category=vital-signs"
+
+:: Windows:
+curl -H "Authorization: Bearer %OAUTH_TOKEN%" -H "Accept: application/json+fhir" "%APIBASE%/Observation?_count=3&patient=%PATIENT%&category=vital-signs"
+
+</code></pre></blockquote>
+
+<h2>Python</h2>
+Open up Python3 on your machine, and copy/paste the text below.
+<blockquote><pre><code>
+import os
+import json
+import requests
+
+headers = {"Authorization" : "Bearer " + os.getenv("OAUTH_TOKEN"), "Accept" : "application/json+fhir"}
+url = os.getenv("APIBASE") + "/Observation?_count=3&patient=" + os.getenv("PATIENT") + "&category=vital-signs"
+rsp = requests.get(url, headers=headers)
+print(json.dumps(rsp.json(), indent=4))
+
+</code></pre></blockquote>
+
+<h2>Python with FHIRPACK</h2>
+<a href="https://fhirpack.readthedocs.io/en/latest/" target="_blank">FHIRPACK</a> is a powerful package for reading and processing FHIR data in Python.
+It can be integrated in a Python script, or called directly via a CLI.
+The package reads an environment file on startup that contains the URL of the Epic server together with your access token.
+Use the FHIRPACK button to copy the settings, then paste these into a file on your machine, e.g. env.txt.
+<blockquote><pre><code>
+fp -e ./env.txt -o "getObservations" -p "patient=${PATIENT},category=vital-signs"
+
+</code></pre></blockquote>
+
+<h2>Javascript</h2>
+If you have node.js installed on your machine you can try executing the fetch command in that environment.
+Otherwise, it's just as easy to use the Javascript engine built into the browser.  Copy/paste the text below
+into an html file, open it with a browser, populate the variables on the form, and click "Try It!".
+
+<blockquote><pre><code>
+&lt;html&gt;
+&lt;input id="apibase" type="text" placeholder="APIBASE" size=80&gt;&lt;br&gt;
+&lt;input id="patient" type="text" placeholder="PATIENT" size=80&gt;&lt;br&gt;
+&lt;textarea id="oauth_token" type="text" placeholder="OAUTH_TOKEN" cols=80&gt;&lt;/textarea&gt;&lt;br&gt;
+&lt;button onclick='getObservations();'&gt;Try It!&lt;/button&gt;
+
+&lt;div id="fhir_rsp"&gt;&lt;/div&gt;
+&lt;script&gt;
+function getObservations() {
+	fetch(apibase.value + '/Observation?_count=3&patient=' + patient.value + '&category=vital-signs',
+		{headers: { "Authorization": "Bearer " + oauth_token.value, "Accept": "application/json+fhir"}}
+	).then(response =&gt; response.json()).then(json =&gt; fhir_rsp.innerHTML = '&lt;pre&gt;' + JSON.stringify(json,null,4)+ '&lt;/pre&gt')
+}
+&lt;/script&gt;
+&lt;/html&gt;
+
+</code></pre></blockquote>
+
+<p>&nbsp;</p>
+
+<!--#include virtual="/footer.html" -->

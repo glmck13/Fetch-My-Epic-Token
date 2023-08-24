@@ -1,0 +1,98 @@
+<!--#include virtual="/header.html" -->
+
+<h1>Welcome to Fetch My Epic Token!</h1>
+<img src="/images/key.png" style="float:left;padding: 0px 10px 0px 0px;">
+This app enables patients (like you and me!) to login to any Epic production system in order to obtain access tokens for making <a href="https://fhir.epic.com/">FHIR API calls</a>.  The tokens can then be used within scripts to process our Epic health data using the FHIR API.  Scripts can be authored in a variety of languages, including bash/curl, Python, Javascript, etc. &ndash; essentially any language that provides methods for making REST-based API calls. You can find basic instructions for writing scripts as well as simple script examples on the <a href="/howto.shtml">HowTo</a> page.
+
+<p>To get started, simply enter the FHIR URL for your Epic platform in the text box below, and click Login.  Refer to <a href="https://open.epic.com/MyApps/Endpoints" target="_blank">https://open.epic.com/MyApps/Endpoints</a> for a list of Epic endpoints.  Be sure to select a URL from the R4 list. Enjoy!</p>
+<input class="half" id="login" type="text" placeholder="Epic FHIR R4 endpoint">
+<button onclick='location.assign("?endpoint=" + login.value);'>Login</button>
+
+<div id=main_fhir_rsp></div>
+
+<p>&nbsp;</p>
+
+<script>
+
+function getClient (sandbox) {
+	if (!sandbox || sandbox.includes("//fhir.epic.com/")) {
+		return '09ec416d-2399-469b-bf8f-eb94c8ce3f07';
+	}
+	else {
+		return '68e9e085-cf1c-4ccb-8458-bbf58ce95bc1';
+	}
+}
+
+function copyEnv (os) {
+	if (os == "Linux") {
+		navigator.clipboard.writeText('export APIBASE='+Endpoint+'\n' + 'export PATIENT='+Context.patient+'\n' + 'export OAUTH_TOKEN='+Context.access_token+'\n');
+	}
+	else if (os == "Windows") {
+		navigator.clipboard.writeText('set APIBASE='+Endpoint+'\r\n' + 'set PATIENT='+Context.patient+'\r\n' + 'set OAUTH_TOKEN='+Context.access_token+'\r\n');
+	}
+	else if (os == "FHIRPACK") {
+		navigator.clipboard.writeText('APIBASE='+Endpoint+'\n' + 'PATIENT='+Context.patient+'\n' + 'OAUTH_TOKEN='+Context.access_token+'\n' + 'AUTH_METHOD='+'oauth_token'+'\n');
+	}
+	alert(os + " env copied to clipboard!");
+}
+
+function getPatient (context) {
+	Context = context;
+	Endpoint = Context.state.split(',')[1];
+	var url = Endpoint + '/Patient/' + Context.patient;
+	fetch(url, {
+		headers: {
+		"Authorization": "Bearer " + Context.access_token,
+		"Accept": "application/json+fhir"
+		}
+		}
+	).then(response => response.json()).then(patient => {
+		main_fhir_rsp.innerHTML = '<h2>FHIR Token</h2>' + '<pre><code>' + JSON.stringify(Context,null,4) + '</code></pre>' + '<button onclick=\'copyEnv("Linux");\'>Copy Linux Env</button>' + '&nbsp' + '<button onclick=\'copyEnv("Windows");\'>Copy Windows Env</button>' + '&nbsp' + '<button onclick=\'copyEnv("FHIRPACK");\'>Copy FHIRPACK Env</button>' + '<h2>FHIR Patient Data</h2>' + '<pre><code>' + JSON.stringify(patient,null,4) + '</code></pre>';
+	});
+}
+
+function getToken () {
+	var url = Query.get("state").split(',')[0];
+	var oauth = 'grant_type=authorization_code&code=' + encodeURIComponent(Code) + '&redirect_uri=' + encodeURIComponent(location.protocol + '//' + location.hostname) + '&client_id=' + getClient(url);
+	fetch(url, {
+		headers: {
+		"Content-Type": "application/x-www-form-urlencoded",
+		},
+		method: "POST",
+		body: oauth
+		}
+	).then(response => response.json()).then(getPatient);
+}
+
+function initOauth () {
+	var url = Endpoint + "/metadata";
+	fetch(url, {
+		headers: {
+		"Accept": "application/json+fhir"
+		}
+		}
+	).then(response => response.json()).then(metadata => {
+		var authorize = metadata.rest[0].security.extension[0].extension[0].valueUri;
+		var grant = metadata.rest[0].security.extension[0].extension[1].valueUri;
+		var url = authorize + '?response_type=code&redirect_uri=' + encodeURIComponent(location.protocol + '//' + location.hostname) + '&client_id=' + getClient(authorize) + '&state=' + encodeURIComponent(grant + ',' + Endpoint);
+		location.assign(url);
+	}
+	).catch(error => {
+		main_fhir_rsp.innerHTML = '<h2>FHIR Error</h2>' + "Failed to retrieve endpoint metadata";
+	});
+}
+
+var Query = new URLSearchParams(location.search);
+var Code = Query.get("code");
+var Endpoint = Query.get("endpoint");
+var Context = {};
+
+if (Endpoint) {
+	initOauth();
+}
+else if (Code) {
+	getToken();
+}
+</script>
+
+<!--#include virtual="/footer.html" -->
