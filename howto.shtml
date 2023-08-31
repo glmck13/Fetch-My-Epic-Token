@@ -33,10 +33,16 @@ print(json.dumps(rsp.json(), indent=4))
 <h2>Python with FHIRPACK</h2>
 <a href="https://fhirpack.readthedocs.io/en/latest/" target="_blank">FHIRPACK</a> is a powerful package for reading and processing FHIR data in Python.
 It can be integrated in a Python script, or called directly via a CLI.
-The package reads an environment file on startup that contains the URL of the Epic server together with your access token.
-Use the FHIRPACK button to copy the settings, then paste these into a file on your machine, e.g. env.txt.
+The package reads an environment file on startup (.env) that contains the URL of the Epic server together with your access token.
 <blockquote><pre><code>
-fp -e ./env.txt -o "getObservations" -p "patient=${PATIENT},category=vital-signs"
+cat - <<"EOF" >.env
+AUTH_METHOD=oauth_token
+APIBASE=${APIBASE}
+PATIENT=${PATIENT}
+OAUTH_TOKEN=${OAUTH_TOKEN}
+EOF
+
+fp -o "getObservations" -p "patient=${PATIENT},category=vital-signs"
 
 </code></pre></blockquote>
 
