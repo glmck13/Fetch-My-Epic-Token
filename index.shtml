@@ -30,9 +30,6 @@ function copyEnv (os) {
 	else if (os == "Windows") {
 		navigator.clipboard.writeText('set APIBASE='+Endpoint+'\r\n' + 'set PATIENT='+Context.patient+'\r\n' + 'set OAUTH_TOKEN='+Context.access_token+'\r\n');
 	}
-	else if (os == "FHIRPACK") {
-		navigator.clipboard.writeText('APIBASE='+Endpoint+'\n' + 'PATIENT='+Context.patient+'\n' + 'OAUTH_TOKEN='+Context.access_token+'\n' + 'AUTH_METHOD='+'oauth_token'+'\n');
-	}
 	alert(os + " env copied to clipboard!");
 }
 
@@ -47,7 +44,7 @@ function getPatient (context) {
 		}
 		}
 	).then(response => response.json()).then(patient => {
-		main_fhir_rsp.innerHTML = '<h2>FHIR Token</h2>' + '<pre><code>' + JSON.stringify(Context,null,4) + '</code></pre>' + '<button onclick=\'copyEnv("Linux");\'>Copy Linux Env</button>' + '&nbsp' + '<button onclick=\'copyEnv("Windows");\'>Copy Windows Env</button>' + '&nbsp' + '<button onclick=\'copyEnv("FHIRPACK");\'>Copy FHIRPACK Env</button>' + '<h2>FHIR Patient Data</h2>' + '<pre><code>' + JSON.stringify(patient,null,4) + '</code></pre>';
+		main_fhir_rsp.innerHTML = '<h2>FHIR Token</h2>' + '<pre><code>' + JSON.stringify(Context,null,4) + '</code></pre>' + '<button onclick=\'copyEnv("Linux");\'>Copy Linux Env</button>' + '&nbsp' + '<button onclick=\'copyEnv("Windows");\'>Copy Windows Env</button>' + '<h2>FHIR Patient Data</h2>' + '<pre><code>' + JSON.stringify(patient,null,4) + '</code></pre>';
 	});
 }
 
