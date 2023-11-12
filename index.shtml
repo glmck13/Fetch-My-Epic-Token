@@ -6,7 +6,7 @@ This app enables patients (like you and me!) to login to any Epic production sys
 
 <p>To get started, simply enter the FHIR URL for your Epic platform in the text box below, and click Login.  Refer to <a href="https://open.epic.com/MyApps/Endpoints" target="_blank">https://open.epic.com/MyApps/Endpoints</a> for a list of Epic endpoints.  Be sure to select a URL from the R4 list. Enjoy!</p>
 <input class="half" id="login" type="text" placeholder="Epic FHIR R4 endpoint">
-<button onclick='location.assign("?endpoint=" + login.value);'>Login</button>
+<button class="success" onclick='location.assign("?endpoint=" + login.value);'>Login</button>
 
 <div id=main_fhir_rsp></div>
 
@@ -44,7 +44,7 @@ function getPatient (context) {
 		}
 		}
 	).then(response => response.json()).then(patient => {
-		main_fhir_rsp.innerHTML = '<h2>FHIR Token</h2>' + '<pre><code>' + JSON.stringify(Context,null,4) + '</code></pre>' + '<button onclick=\'copyEnv("Linux");\'>Copy Linux Env</button>' + '&nbsp' + '<button onclick=\'copyEnv("Windows");\'>Copy Windows Env</button>' + '<h2>FHIR Patient Data</h2>' + '<pre><code>' + JSON.stringify(patient,null,4) + '</code></pre>';
+			main_fhir_rsp.innerHTML = '<form action="getEHR.cgi" method="POST"><input type="hidden" name="Patient" value="' + Context.patient + '"><input type="hidden" name="Organization" value="' + patient.managingOrganization.display + '"><input type="hidden" name="ApiBase" value="' + Endpoint + '"><input type="hidden" name="Token" value="' + Context.access_token + '"><input type="submit" value="Download records from ' + patient.managingOrganization.display + '"></form><h2>FHIR Token</h2>' + '<pre><code>' + JSON.stringify(Context,null,4) + '</code></pre>' + '<button onclick=\'copyEnv("Linux");\'>Copy Linux Env</button>' + '&nbsp' + '<button onclick=\'copyEnv("Windows");\'>Copy Windows Env</button>' + '<h2>FHIR Patient Data</h2>' + '<pre><code>' + JSON.stringify(patient,null,4) + '</code></pre>';
 	});
 }
 
