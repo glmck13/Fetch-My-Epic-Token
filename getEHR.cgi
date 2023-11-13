@@ -13,12 +13,20 @@ elif Method == "POST":
 	QueryString = sys.stdin.read()
 else:
 	QueryString = ""
+
 if QueryString:
 	Fields = parse_qs(QueryString)
 	ApiBase = Fields.get("ApiBase", [""])[0]
 	Patient = Fields.get("Patient", [""])[0]
-	Organization = Fields.get("Organization", [""])[0]
 	Token = Fields.get("Token", [""])[0]
+	Organization = Fields.get("Organization", ["None"])[0]
+else:
+	ApiBase = os.getenv("APIBASE", "")
+	Patient = os.getenv("PATIENT", "")
+	Token = os.getenv("OAUTH_TOKEN", "")
+	Organization = "None"
+
+if os.getenv("SCRIPT_FILENAME"):
 	fname = "{}.zip".format(Organization)
 	for c in "',/ ":
 		fname = fname.replace(c, '_')
@@ -26,10 +34,6 @@ if QueryString:
 	print("Content-Disposition: attachment; filename={}".format(fname))
 	print()
 	sys.stdout.flush()
-else:
-	ApiBase = os.getenv("APIBASE")
-	Patient = os.getenv("PATIENT")
-	Token = os.getenv("OAUTH_TOKEN")
 
 TmpDir = mkdtemp()
 OldDir = os.getcwd()
@@ -37,9 +41,12 @@ os.chdir(TmpDir)
 
 Headers = {"Authorization" : "Bearer " + Token, "Accept" : "application/json+fhir"}
 
-LabOb = requests.get(ApiBase + "/Observation?patient=" + Patient + "&category=laboratory", headers=Headers).json()["entry"]
-DiagRpt = requests.get(ApiBase + "/DiagnosticReport?patient=" + Patient, headers=Headers).json()["entry"]
-RefDoc = requests.get(ApiBase + "/DocumentReference?patient=" + Patient + "&category=clinical-note", headers=Headers).json()["entry"]
+try:
+    LabOb = requests.get(ApiBase + "/Observation?patient=" + Patient + "&category=laboratory", headers=Headers).json()["entry"]
+    DiagRpt = requests.get(ApiBase + "/DiagnosticReport?patient=" + Patient, headers=Headers).json()["entry"]
+    RefDoc = requests.get(ApiBase + "/DocumentReference?patient=" + Patient + "&category=clinical-note", headers=Headers).json()["entry"]
+except:
+    exit()
 
 LabObRec = []
 LabObId = set()
@@ -85,15 +92,6 @@ for x in LabObRec:
 	else:
 		NewLabObRec.append(x)
 LabObRec = NewLabObRec
-
-#with open("DiagObRec.json", "w") as f:
-#	f.write(json.dumps(DiagObRec))
-#
-#with open("LabObRec.json", "w") as f:
-#	f.write(json.dumps(LabObRec))
-#
-#with open("RefDoc.json", "w") as f:
-#	f.write(json.dumps(RefDoc))
 
 if len(LabObRec) > 0:
     with open("Labs.csv", "w") as f:
