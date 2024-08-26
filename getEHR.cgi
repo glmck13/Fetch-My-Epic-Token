@@ -67,7 +67,7 @@ for x in DiagRpt:
 		continue
 	for y in x.get("result", []):
 		z = y["reference"]
-		if z not in LabObId:
+		if '/' in z and z not in LabObId:
 			DiagObId.append(z)
 del(DiagRpt)
 
@@ -86,10 +86,10 @@ del(DiagObId)
 
 NewLabObRec = []
 for x in LabObRec:
-	y = x["code"]["text"].lower()
+	y = x["code"].get("text", "").lower()
 	if "report" in y or "path" in y:
 		DiagObRec.append(x)
-	else:
+	elif y:
 		NewLabObRec.append(x)
 LabObRec = NewLabObRec
 
