@@ -1,21 +1,10 @@
 <!--#include virtual="/header.html" -->
 
 <h1>A few things to know about using this app...</h1>
+
 <h2>Terms and Conditions</h2>
-Fetch My Epic Token is made available under the terms and conditions specified under the <a href="https://opensource.org/license/mit/" target="_blank">MIT license</a>:
-<blockquote>
-<p>
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-<ul>
-<li>
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-</li>
-<li>
-The software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose and noninfringement. In no event shall the authors or copyright holders be liable for any claim, damages or other liability, whether in an action of contract, tort or otherwise, arising from, out of or in connection with the software or the use or other dealings in the software.
-</li>
-</ul>
-</p>
-</blockquote>
+Fetch My Epic Token is made available free of charge under the terms and conditions specified by the <a href="https://opensource.org/license/mit/">MIT license</a>.
+
 <h2>Privacy</h2>
 Fetch My Epic Token does not collect, retain, or distribute any personal information from the end user.  No cookies are generated or used by the site.  The site does, however, contain links to third-party websites, although any use of those sites is governed by their respective privacy policies.
 

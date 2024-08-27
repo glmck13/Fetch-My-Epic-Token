@@ -1,13 +1,13 @@
 <!--#include virtual="/header.html" -->
 
 <h1>Welcome to Fetch My Epic Token!</h1>
-<img src="/images/key.png" style="float:left;padding: 0px 10px 0px 0px;">
-This app enables patients (like you and me!) to login to any Epic production system in order to obtain access tokens for making <a href="https://fhir.epic.com/">FHIR API calls</a>.  The tokens can then be used within scripts to process our Epic health data using the FHIR API.  Scripts can be authored in a variety of languages, including bash/curl, Python, Javascript, etc. &ndash; essentially any language that provides methods for making REST-based API calls. You can find basic instructions for writing scripts as well as simple script examples on the <a href="/howto.shtml">HowTo</a> page.
+<img src="/images/chart.png" style="float:left;padding: 0px 10px 0px 0px;">
+This page enables anyone with an Epic "MyChart" account to obtain an access token and patient ID so they can pull information from their Electronic Health Record (EHR) using the <a href="https://fhir.epic.com/" target="_blank">FHIR API</a>. If you've never heard of the FHIR API and don't know how to use it, check out the examples on the <a href="/howto.shtml">HowTo</a> page.  Afterwards, if you're feeling a little more adventurous take a look at getEHR.cgi on <a href="https://github.com/glmck13/FetchMyEpicToken">my Github site</a>. This script uses the FHIR API to extract all of the lab results, test reports, and clinical notes in your EHR, and packages these in a ZIP file for download.  A copy of the script is installed on this site for you to use. To run it, click the button that appears just below this intro after you're logged in.</p>
 
-<p>To get started, simply enter the FHIR URL for your Epic platform in the text box below, and click Login.  Refer to <a href="https://open.epic.com/MyApps/Endpoints" target="_blank">https://open.epic.com/MyApps/Endpoints</a> for a list of Epic endpoints.  Be sure to select a URL from the R4 list. Enjoy!</p>
-<input class="half" id="login" type="text" placeholder="Epic FHIR R4 endpoint">
-<button class="success" onclick='location.assign("?endpoint=" + login.value);'>Login</button>
-<p><span style="color:red; font-style: italic;">New!</span>  I just wrote a simple Python script that pulls all lab results, clinical notes, and scan reports from your Epic system, and downloads these in a ZIP file.  Just click the button that appears below this text after you login.  To learn more, you can review the getEHR.cgi script on <a href="https://github.com/glmck13/FetchMyEpicToken">my Github site</a>.</p>
+<p>To get started, select your Epic/MyChart provider from the list below and click Login. Enjoy!</p>
+
+<!--#include virtual="/mychart.html" -->
+<button class="success" onclick='location.assign("?endpoint=" + mychart.value);'>Login</button>
 
 <div id=main_fhir_rsp></div>
 
@@ -45,7 +45,7 @@ function getPatient (context) {
 		}
 		}
 	).then(response => response.json()).then(patient => {
-			main_fhir_rsp.innerHTML = '<form action="getEHR.cgi" method="POST"><input type="hidden" name="Patient" value="' + Context.patient + '"><input type="hidden" name="Organization" value="' + patient.managingOrganization.display + '"><input type="hidden" name="ApiBase" value="' + Endpoint + '"><input type="hidden" name="Token" value="' + Context.access_token + '"><input type="submit" value="Download records from ' + patient.managingOrganization.display + '"></form><h2>FHIR Token</h2>' + '<pre><code>' + JSON.stringify(Context,null,4) + '</code></pre>' + '<button onclick=\'copyEnv("Linux");\'>Copy Linux Env</button>' + '&nbsp' + '<button onclick=\'copyEnv("Windows");\'>Copy Windows Env</button>' + '<h2>FHIR Patient Data</h2>' + '<pre><code>' + JSON.stringify(patient,null,4) + '</code></pre>';
+			main_fhir_rsp.innerHTML = '<form action="getEHR.cgi" method="POST"><input type="hidden" name="Patient" value="' + Context.patient + '"><input type="hidden" name="Organization" value="' + patient.managingOrganization.display + '"><input type="hidden" name="ApiBase" value="' + Endpoint + '"><input type="hidden" name="Token" value="' + Context.access_token + '"><input type="submit" value="Download EHR from ' + patient.managingOrganization.display + '"></form><h2>FHIR Token</h2>' + '<pre><code>' + JSON.stringify(Context,null,4) + '</code></pre>' + '<button onclick=\'copyEnv("Linux");\'>Copy Linux Env</button>' + '&nbsp' + '<button onclick=\'copyEnv("Windows");\'>Copy Windows Env</button>' + '<h2>FHIR Patient Data</h2>' + '<pre><code>' + JSON.stringify(patient,null,4) + '</code></pre>';
 	});
 }
 

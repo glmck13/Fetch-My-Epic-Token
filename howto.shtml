@@ -3,7 +3,6 @@
 <h1>How to make FHIR API calls</h1>
 After logging into your Epic system, click the "Copy Env" button to generate settings for several shell variables.  Be sure to select the correct button
 depending on whether you're working on Linux or Windows. Afterwards, just open a bash/CMD window, paste in the variable assigments, then try executing the examples below.
-If you encounter any problems, or have questions just click on the <a href="/contact.shtml">"Contact Me"</a> link above and drop me a note.
 
 <h2>bash/curl</h2>
 Copy/paste the correct curl command into your terminal, and hit enter.
