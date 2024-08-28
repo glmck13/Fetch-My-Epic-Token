@@ -28,7 +28,7 @@ else:
 
 if os.getenv("SCRIPT_FILENAME"):
 	fname = "{}.zip".format(Organization)
-	for c in "',/ ":
+	for c in ":',/ ":
 		fname = fname.replace(c, '_')
 	print("Content-type: application/octet-stream")
 	print("Content-Disposition: attachment; filename={}".format(fname))
@@ -115,7 +115,7 @@ for x in DiagObRec:
 	test = x["code"]["text"]
 
 	fname = "{}-{}-{}.txt".format(order, dt, test)
-	for c in "',/ ":
+	for c in ":',/ ":
 		fname = fname.replace(c, '_')
 	with open(fname, "w") as f:
 		f.write(x.get("valueString"))
@@ -147,7 +147,7 @@ for x in RefDoc:
 	Note = requests.get(ApiBase + "/" + url, headers=Headers).content
 
 	fname = "Note-{}-{}.{}".format(author, dt, contentType.split('/')[1])
-	for c in "',/ ":
+	for c in ":',/ ":
 		fname = fname.replace(c, '_')
 	with open(fname, "wb") as f:
 		f.write(Note)

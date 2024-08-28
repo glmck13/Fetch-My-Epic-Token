@@ -45,6 +45,12 @@ function getPatient (context) {
 		}
 		}
 	).then(response => response.json()).then(patient => {
+			var x = document.getElementById("mychart");
+			for(i = 0; i < x.options.length; i++) {
+				if (x.options[i].value == Endpoint) {
+					x.options[i].selected = true;
+				}
+			}
 			main_fhir_rsp.innerHTML = '<form action="getEHR.cgi" method="POST"><input type="hidden" name="Patient" value="' + Context.patient + '"><input type="hidden" name="Organization" value="' + patient.managingOrganization.display + '"><input type="hidden" name="ApiBase" value="' + Endpoint + '"><input type="hidden" name="Token" value="' + Context.access_token + '"><input type="submit" value="Download EHR from ' + patient.managingOrganization.display + '"></form><h2>FHIR Token</h2>' + '<pre><code>' + JSON.stringify(Context,null,4) + '</code></pre>' + '<button onclick=\'copyEnv("Linux");\'>Copy Linux Env</button>' + '&nbsp' + '<button onclick=\'copyEnv("Windows");\'>Copy Windows Env</button>' + '<h2>FHIR Patient Data</h2>' + '<pre><code>' + JSON.stringify(patient,null,4) + '</code></pre>';
 	});
 }
