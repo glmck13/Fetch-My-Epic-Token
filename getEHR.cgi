@@ -4,7 +4,8 @@ import sys, os, json
 import requests
 from urllib.parse import parse_qs
 from tempfile import mkdtemp
-import subprocess
+import zipfile
+import shutil
 
 Method = os.getenv("REQUEST_METHOD", "")
 if Method == "GET":
@@ -152,8 +153,20 @@ for x in RefDoc:
 	with open(fname, "wb") as f:
 		f.write(Note)
 
-zip = subprocess.run(["zip", "-r", "-", "." ], capture_output=True)
+#zip = subprocess.run(["zip", "-r", "-", "." ], capture_output=True)
+ZIPFILE = "EHR.zip"
+with zipfile.ZipFile(ZIPFILE, "w") as zf:
+	for folder, sub_folders, files in os.walk(TmpDir):
+		for fname in files:
+			if fname == ZIPFILE:
+				continue
+			file_path = os.path.join(folder, fname)
+			zf.write(file_path, os.path.basename(file_path), compress_type=zipfile.ZIP_DEFLATED)
+with open(ZIPFILE, "rb") as f:
+	zip_raw = f.read()
 
 os.chdir(OldDir)
-subprocess.run(["rm", "-fr", TmpDir])
-sys.stdout.buffer.write(zip.stdout)
+#subprocess.run(["rm", "-fr", TmpDir])
+shutil.rmtree(TmpDir)
+
+sys.stdout.buffer.write(zip_raw)
