@@ -6,6 +6,7 @@ rsp = requests.get("https://open.epic.com/Endpoints/R4").json()
 
 print('<select class="half" id="mychart">')
 print('<option value="">-- Select Epic/MyChart Provider --</option>')
+print('<option value="https://fhir.epic.com/interconnect-fhir-oauth/api/FHIR/R4/">Epic Sandbox</option>')
 
 options = {}
 for ep in rsp["entry"]:
