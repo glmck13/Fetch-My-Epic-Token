@@ -55,7 +55,7 @@ function getPatient (context) {
 
 function getToken () {
 	var url = Query.get("state").split(',')[0];
-	var oauth = 'grant_type=authorization_code&code=' + encodeURIComponent(Code) + '&redirect_uri=' + encodeURIComponent(location.protocol + '//' + location.hostname) + '&client_id=' + getClient(url);
+	var oauth = 'grant_type=authorization_code&code=' + encodeURIComponent(Code) + '&redirect_uri=' + encodeURIComponent(location.origin) + '&client_id=' + getClient(url);
 	fetch(url, {
 		headers: {
 		"Content-Type": "application/x-www-form-urlencoded",
@@ -76,7 +76,7 @@ function initOauth () {
 	).then(response => response.json()).then(metadata => {
 		var authorize = metadata.rest[0].security.extension[0].extension[0].valueUri;
 		var grant = metadata.rest[0].security.extension[0].extension[1].valueUri;
-		var url = authorize + '?response_type=code&redirect_uri=' + encodeURIComponent(location.protocol + '//' + location.hostname) + '&client_id=' + getClient(authorize) + '&state=' + encodeURIComponent(grant + ',' + Endpoint);
+		var url = authorize + '?response_type=code&redirect_uri=' + encodeURIComponent(location.origin) + '&client_id=' + getClient(authorize) + '&state=' + encodeURIComponent(grant + ',' + Endpoint);
 		location.assign(url);
 	}
 	).catch(error => {
