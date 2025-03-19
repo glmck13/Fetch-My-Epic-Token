@@ -13,12 +13,12 @@ Do you use a "MyChart" portal to access your health records?  Did you know that 
 
 <script>
 
-function getClient (sandbox) {
+function getClient (sandbox, uscdiv3) {
 	if (!sandbox || sandbox.includes("//fhir.epic.com/")) {
-		return '09ec416d-2399-469b-bf8f-eb94c8ce3f07';
+		return uscdiv3 ? '6772f7b4-6eee-468d-8d3c-5d1e796da1e4' : '09ec416d-2399-469b-bf8f-eb94c8ce3f07';
 	}
 	else {
-		return '68e9e085-cf1c-4ccb-8458-bbf58ce95bc1';
+		return uscdiv3 ? '400cc529-f55b-4bf9-94bf-29235891ca66' : '68e9e085-cf1c-4ccb-8458-bbf58ce95bc1';
 	}
 }
 
@@ -55,7 +55,8 @@ function getPatient (context) {
 
 function getToken () {
 	var url = Query.get("state").split(',')[0];
-	var oauth = 'grant_type=authorization_code&code=' + encodeURIComponent(Code) + '&redirect_uri=' + encodeURIComponent(location.origin) + '&client_id=' + getClient(url);
+	var uscdiv3 = +Query.get("state").split(',')[2];
+	var oauth = 'grant_type=authorization_code&code=' + encodeURIComponent(Code) + '&redirect_uri=' + encodeURIComponent(location.origin) + '&client_id=' + getClient(url, uscdiv3);
 	fetch(url, {
 		headers: {
 		"Content-Type": "application/x-www-form-urlencoded",
@@ -76,7 +77,8 @@ function initOauth () {
 	).then(response => response.json()).then(metadata => {
 		var authorize = metadata.rest[0].security.extension[0].extension[0].valueUri;
 		var grant = metadata.rest[0].security.extension[0].extension[1].valueUri;
-		var url = authorize + '?response_type=code&redirect_uri=' + encodeURIComponent(location.origin) + '&client_id=' + getClient(authorize) + '&state=' + encodeURIComponent(grant + ',' + Endpoint);
+		var uscdiv3 = metadata.instantiates.includes('http://hl7.org/fhir/us/core/CapabilityStatement/us-core-server|6.1.0') ? 1 : 0;
+		var url = authorize + '?response_type=code&redirect_uri=' + encodeURIComponent(location.origin) + '&client_id=' + getClient(authorize, uscdiv3) + '&state=' + encodeURIComponent(grant + ',' + Endpoint + ',' + uscdiv3);
 		location.assign(url);
 	}
 	).catch(error => {
