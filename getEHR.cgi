@@ -43,11 +43,49 @@ os.chdir(TmpDir)
 Headers = {"Authorization" : "Bearer " + Token, "Accept" : "application/json+fhir"}
 
 try:
-    LabOb = requests.get(ApiBase + "/Observation?patient=" + Patient + "&category=laboratory", headers=Headers).json()["entry"]
-    DiagRpt = requests.get(ApiBase + "/DiagnosticReport?patient=" + Patient, headers=Headers).json()["entry"]
-    RefDoc = requests.get(ApiBase + "/DocumentReference?patient=" + Patient + "&category=clinical-note", headers=Headers).json()["entry"]
+	Encntr = requests.get(ApiBase + "/Encounter?patient=" + Patient, headers=Headers).json()["entry"]
+	VitalOb = requests.get(ApiBase + "/Observation?patient=" + Patient + "&category=vital-signs", headers=Headers).json()["entry"]
+	LabOb = requests.get(ApiBase + "/Observation?patient=" + Patient + "&category=laboratory", headers=Headers).json()["entry"]
+	DiagRpt = requests.get(ApiBase + "/DiagnosticReport?patient=" + Patient, headers=Headers).json()["entry"]
+	RefDoc = requests.get(ApiBase + "/DocumentReference?patient=" + Patient + "&category=clinical-note", headers=Headers).json()["entry"]
 except:
-    exit()
+	exit()
+
+def fmt_set (s):
+	if s:
+		return '"' + '","'.join(s) + '"'
+	else:
+		return ''
+
+if len(Encntr) > 0:
+	with open("Visits.csv", "w") as f:
+		f.write("When|What|Why|How|Who|Where\n")
+		for e in Encntr:
+			r = e["resource"]
+			when = r.get("period", {}).get("start", "")
+			what = r.get("class", {}).get("display", "")
+			why = set()
+			for x in r.get("reasonCode", []):
+				y = x.get("text")
+				if y:
+					why.add(y)
+			how = set()
+			for x in r.get("type", []):
+				y = x.get("text")
+				if y:
+					how.add(y)
+			who = set()
+			for x in r.get("participant", [{}]):
+				y = x.get("individual", {}).get("display")
+				if y:
+					who.add(y)
+			where = set()
+			for x in r.get("location", [{}]):
+				y = x.get("location", {}).get("display")
+				if y:
+					where.add(y)
+			if when:
+				f.write('{}|{}|{}|{}|{}|{}\n'.format(when, what, fmt_set(why), fmt_set(how), fmt_set(who), fmt_set(where)))
 
 LabObRec = []
 LabObId = set()
@@ -94,20 +132,39 @@ for x in LabObRec:
 		NewLabObRec.append(x)
 LabObRec = NewLabObRec
 
-if len(LabObRec) > 0:
-    with open("Labs.csv", "w") as f:
-    	f.write('"Order","DateTime","Test","Value"\n')
-    	for x in LabObRec:
-    		order = x["basedOn"][0]["display"]
-    		dt = x["effectiveDateTime"]
-    		test = x["code"]["text"]
-    		if x.get("valueQuantity"):
-    			value = x["valueQuantity"]["value"]
-    		elif x.get("valueString"):
-    			value = x["valueString"].replace('"', "'")
-    		else:
-    			value = ""
-    		f.write('"{}","{}","{}","{}"\n'.format(order, dt, test, value))
+if len(LabObRec) > 0 or len(VitalOb) > 0:
+	with open("Labs.csv", "w") as f:
+		f.write('"Order","DateTime","Test","Value"\n')
+		for x in LabObRec:
+			order = x["basedOn"][0]["display"]
+			dt = x["effectiveDateTime"]
+			test = x["code"]["text"]
+			if x.get("valueQuantity"):
+				value = x["valueQuantity"]["value"]
+			elif x.get("valueString"):
+				value = x["valueString"].replace('"', "'")
+			else:
+				value = ""
+			f.write('"{}","{}","{}","{}"\n'.format(order, dt, test, value))
+		for x in VitalOb:
+			x = x["resource"]
+			if x["resourceType"] != "Observation":
+				continue
+			order = x["category"][0]["text"]
+			dt = x["effectiveDateTime"]
+			test = x["code"]["text"]
+			if x.get("valueQuantity"):
+				value = x["valueQuantity"]["value"]
+			elif x.get("component"):
+				value = []
+				for y in x.get("component"):
+					if y.get("valueQuantity"):
+						value.append(str(y["valueQuantity"]["value"]))
+				value = ' / '.join(value)
+			else:
+				value = ""
+
+			f.write('"{}","{}","{}","{}"\n'.format(order, dt, test, value))
 
 for x in DiagObRec:
 	for y in x["basedOn"]:
@@ -119,7 +176,7 @@ for x in DiagObRec:
 	for c in ":',/ ":
 		fname = fname.replace(c, '_')
 	with open(fname, "w") as f:
-		f.write(x.get("valueString"))
+		f.write(x.get("valueString", ""))
 
 for x in RefDoc:
 	x = x["resource"]
