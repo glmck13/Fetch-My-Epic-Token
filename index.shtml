@@ -97,6 +97,10 @@ if (Endpoint) {
 else if (Code) {
 	getToken();
 }
+else {
+	main_fhir_rsp.innerHTML = '<div style="text-align: center;"><br/><br/><iframe width="560" height="315" src="https://www.youtube.com/embed/qUezYGR_mqo?si=GgDpTrgs7CANVOau&amp;start=2" title="YouTube video player" frameborder="0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>';
+}
+
 </script>
 
 <!--#include virtual="/footer.html" -->
