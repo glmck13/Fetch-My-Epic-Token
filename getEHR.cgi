@@ -44,6 +44,7 @@ Headers = {"Authorization" : "Bearer " + Token, "Accept" : "application/json+fhi
 
 try:
 	Encntr = requests.get(ApiBase + "/Encounter?patient=" + Patient, headers=Headers).json()["entry"]
+	Shots = requests.get(ApiBase + "/Immunization?patient=" + Patient, headers=Headers).json()["entry"]
 	VitalOb = requests.get(ApiBase + "/Observation?patient=" + Patient + "&category=vital-signs", headers=Headers).json()["entry"]
 	LabOb = requests.get(ApiBase + "/Observation?patient=" + Patient + "&category=laboratory", headers=Headers).json()["entry"]
 	DiagRpt = requests.get(ApiBase + "/DiagnosticReport?patient=" + Patient, headers=Headers).json()["entry"]
@@ -56,6 +57,18 @@ def fmt_set (s):
 		return '"' + '","'.join(s) + '"'
 	else:
 		return ''
+
+if len(Shots) > 0:
+	with open("Immunizations.csv", "w") as f:
+		f.write("When|What\n")
+		for s in Shots:
+			r = s["resource"]
+			if r["resourceType"] != "Immunization":
+				continue
+			when = r.get("occurrenceDateTime", "")
+			what = r.get("vaccineCode", {}).get("text", "")
+			if when:
+				f.write('{}|{}\n'.format(when, what))
 
 if len(Encntr) > 0:
 	with open("Visits.csv", "w") as f:
