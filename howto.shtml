@@ -52,6 +52,10 @@ into an html file, open it with a browser, populate the variables on the form, a
 
 <blockquote><pre><code>
 &lt;html&gt;
+&lt;head&gt;
+&lt;link rel="stylesheet" href="https://fetch-my-epic-token.org/style.min.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
 &lt;input id="apibase" type="text" placeholder="APIBASE" size=80&gt;&lt;br&gt;
 &lt;input id="patient" type="text" placeholder="PATIENT" size=80&gt;&lt;br&gt;
 &lt;textarea id="oauth_token" type="text" placeholder="OAUTH_TOKEN" cols=80&gt;&lt;/textarea&gt;&lt;br&gt;
@@ -65,6 +69,7 @@ function getObservations() {
 	).then(response =&gt; response.json()).then(json =&gt; fhir_rsp.innerHTML = '&lt;pre&gt;' + JSON.stringify(json,null,4)+ '&lt;/pre&gt')
 }
 &lt;/script&gt;
+&lt;/body&gt;
 &lt;/html&gt;
 
 </code></pre></blockquote>
