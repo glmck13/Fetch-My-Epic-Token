@@ -4,20 +4,20 @@ import sys, os
 
 params = {
 	"WBC": ["WBC", "White Blood Cell Count"],
-	"Lymph %": ["Lymphs %", "Lymphocytes %"],
-	"Mono %": ["Monos %", "Monocyte %"],
-	"Gran %": ["Granulocyte %"],
+	"Lymph %": ["Lymphocytes", "Lymphs %", "Lymphocytes %"],
+	"Mono %": ["Monocytes", "Monos %", "Monocyte %"],
+	"Gran %": ["Granulocytes", "Granulocyte %"],
 	"GranIm %": ["Immature Grans %", "Immature Gran %"],
-	"Neut %": ["Neutrophil %"],
-	"Eos %": ["Eos %", "Eosinophil %"],
-	"Bas %": ["Basophil %"],
-	"Lymph #": ["Lymphs Abs", "Lymphcytes Absolute"],
-	"Mono #": ["Monos Abs", "Monocyte Absolute"],
-	"Gran #": ["Granulocytes Abs"],
+	"Neut %": ["Neutrophils", "Neutrophil %"],
+	"Eos %": ["Eosinophils", "Eos %", "Eosinophil %"],
+	"Bas %": ["Basophils", "Basophil %"],
+	"Lymph #": ["Absolute Lymphocytes", "Lymphs Abs", "Lymphcytes Absolute"],
+	"Mono #": ["Absolute Monocytes", "Monos Abs", "Monocyte Absolute"],
+	"Gran #": ["Absolute Granulocytes", "Granulocytes Abs"],
 	"GranIm #": ["Immature Grans (Abs)", "Immature Granulocytes Abs"],
-	"Neut #": ["Neutrophil Absolute (ANC)", "ANC-Neutrophil Absolute"],
-	"Eos #": ["Eosinophils Abs", "Eosinophil Absolute"],
-	"Baso #": ["Basophil Abs"],
+	"Neut #": ["Absolute Neutrophils", "Neutrophil Absolute (ANC)", "ANC-Neutrophil Absolute"],
+	"Eos #": ["Absolute Eosinophils", "Eosinophils Abs", "Eosinophil Absolute"],
+	"Baso #": ["Absolute Basophils", "Basophil Abs"],
 	"RBC": ["RBC", "Red Blood Cell Count"],
 	"HGB": ["HGB", "Hemoglobin"],
 	"HCT": ["HCT", "Hematocrit"],
@@ -37,12 +37,12 @@ params = {
 	"CO2": ["Carbon Dioxide", "CO2", "CO2."],
 	"Chloride": ["Chloride"],
 	"Creatinine": ["Creatinine", "Creatinine, Serum."],
-	"EGFR": ["EGFR Result", "Est GFR NonAfrAm(MDRD Eqn)", "GFR Non African American"],
+	"EGFR": ["EGFR", "EGFR Result", "Est GFR NonAfrAm(MDRD Eqn)", "GFR Non African American"],
 	"Globulin": ["Globulin"],
 	"Glucose": ["Glucose", "Glucose Bld"],
 	"Potassium": ["Potassium"],
 	"Sodium": ["Sodium"],
-	"Protein": ["Total Protein"],
+	"Protein": ["Protein, Total", "Total Protein"],
 	"TSH": ["TSH"],
 	"PSA": ["PSA", "Prostate Spec Ag-Tosoh", "Prostate Spec Ag-TOSOH", "PSA (Hybritech)"],
 }
@@ -60,7 +60,7 @@ for n in range(1, len(sys.argv)):
 		found = False
 		for column, tags in params.items():
 			for t in tags:
-				if t == line[2]:
+				if t.casefold() == line[2].casefold():
 					stamp = line[1]
 					if stamp not in cbc:
 						cbc[stamp] = {}
