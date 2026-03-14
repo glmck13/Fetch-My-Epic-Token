@@ -25,10 +25,6 @@ def get_org_keys(session):
     print("Validating session and fetching organizations...")
     try:
         resp = session.post(f"{BASE_URL}/GetOrganizations", headers=HEADERS, json={})
-        if resp.status_code == 401 or resp.status_code == 500:
-            print("CRITICAL: Session expired or Token invalid. Please refresh COOKIES/TOKEN.")
-            sys.exit(1)
-        
         orgs = resp.json().get("organizations", {})
         keys = list(orgs.keys())
         print(f"Connected to {len(keys)} organizations.")
