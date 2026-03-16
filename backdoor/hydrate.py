@@ -31,19 +31,6 @@ def clean_html(raw_html):
     clean_text = re.sub(r'\n\s*\n', '\n\n', clean_text)
     return clean_text.strip()
 
-def build_participant_header(conv):
-    """Lists all medical staff involved in the thread."""
-    participants = []
-    for person in conv.get("audience", []):
-        name = person.get("name")
-        if name and name not in participants:
-            participants.append(name)
-    for user in conv.get("users", []):
-        name = user.get("displayName")
-        if name and name not in participants:
-            participants.append(name)
-    return "PARTICIPANTS: " + (" | ".join(participants) if participants else "Staff/System Only")
-
 def resolve_author_name(msg, name_map, viewer_keys, audience, org_id):
     """Maps internal IDs back to readable names."""
     author_obj = msg.get("author", {})
@@ -78,12 +65,12 @@ def get_full_text(hth_id, org_id, session):
             new_anchor = batch[-1].get("deliveryInstantISO")
             if not new_anchor or new_anchor == anchor: break
             anchor = new_anchor
-            time.sleep(0.2) # Slight pause to be polite to the server
+            time.sleep(0.2) 
         except: break
     return all_msgs
 
 def process_conversation(conv, session):
-    """Worker function to process a single thread block."""
+    """Processes a single thread and returns (latest_date, formatted_block)."""
     hth_id = conv.get("hthId")
     org_id = conv.get("organizationId")
     subject = conv.get("subject", "No Subject")
@@ -91,14 +78,11 @@ def process_conversation(conv, session):
     full_history = get_full_text(hth_id, org_id, session)
     active_messages = full_history if full_history else conv.get("messages", [])
 
-    block = [
-        f"\n{'='*80}",
-        f"SUBJECT:      {subject}",
-        f"{build_participant_header(conv)}",
-        f"{'='*80}"
-    ]
-    
+    message_lines = []
+    found_participants = set()
     processed_wmg_ids = set()
+    latest_date = "0000-00-00T00:00:00Z" # Default for sorting
+
     for msg in active_messages:
         wmg_id = msg.get("wmgId")
         if wmg_id in processed_wmg_ids: continue
@@ -106,14 +90,31 @@ def process_conversation(conv, session):
 
         author = resolve_author_name(msg, conv.get("userOverrideNames", {}), 
                                      conv.get("viewerKeys", []), conv.get("audience", []), org_id)
-        date = msg.get("deliveryInstantISO", "Unknown")
-        body = clean_html(msg.get("body", ""))
-        block.append(f"FROM: {author}\nDATE: {date}\n\n{body}\n{'-'*40}")
         
-    return "\n".join(block)
+        found_participants.add(author)
+
+        date = msg.get("deliveryInstantISO", "Unknown")
+        # Track the latest message date in this conversation for sorting
+        if date != "Unknown" and date > latest_date:
+            latest_date = date
+
+        body = clean_html(msg.get("body", ""))
+        message_lines.append(f"FROM: {author}\nDATE: {date}\n\n{body}\n{'-'*40}")
+    
+    participant_header = " | ".join(sorted(list(found_participants))) if found_participants else "No Participants Found"
+
+    block = [
+        f"\n{'='*80}",
+        f"SUBJECT:      {subject}",
+        f"PARTICIPANTS: {participant_header}",
+        f"{'='*80}"
+    ]
+    block.extend(message_lines)
+        
+    return (latest_date, "\n".join(block))
 
 def hydrate(max_workers=5):
-    """Main execution loop using multi-threading."""
+    """Main execution loop: Fetches, sorts, and saves transcripts."""
     input_file = "mychart_all_messages.json"
     if not os.path.exists(input_file):
         print("Error: run messages.py first.")
@@ -125,26 +126,28 @@ def hydrate(max_workers=5):
     print(f"Hydrating {len(conversations)} threads using {max_workers} parallel workers...")
     
     session = requests.Session()
-    final_results = [None] * len(conversations)
+    unsorted_results = []
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        # Submit tasks and track their original index to keep order
-        future_to_idx = {executor.submit(process_conversation, c, session): i 
-                         for i, c in enumerate(conversations)}
+        futures = [executor.submit(process_conversation, c, session) for c in conversations]
         
-        for future in as_completed(future_to_idx):
-            idx = future_to_idx[future]
+        for i, future in enumerate(as_completed(futures)):
             try:
-                final_results[idx] = future.result()
-                print(f"[{idx + 1}/{len(conversations)}] Processed: {conversations[idx].get('subject')[:30]}...")
+                result = future.result() # result is (latest_date, block_text)
+                unsorted_results.append(result)
+                print(f"[{i + 1}/{len(conversations)}] Processed: {conversations[i].get('subject')[:30]}...")
             except Exception as e:
-                print(f"Error on thread {idx}: {e}")
+                print(f"Error processing thread: {e}")
+
+    # Sort all conversation blocks by their latest message date (Descending)
+    print("Sorting transcript by date...")
+    unsorted_results.sort(key=lambda x: x[0], reverse=True)
 
     with open("mychart_final_transcript.txt", "w") as f:
-        f.write("\n".join(filter(None, final_results)))
+        # Extract just the block_text (index 1) from the sorted tuples
+        f.write("\n".join(res[1] for res in unsorted_results))
 
-    print(f"\nComplete! Transcript saved to 'mychart_final_transcript.txt'.")
+    print(f"\nComplete! Transcript sorted by date and saved to 'mychart_final_transcript.txt'.")
 
 if __name__ == "__main__":
-    # Suggested: 5 workers is usually safe. 10 is faster but may trigger rate limits.
     hydrate(max_workers=5)
