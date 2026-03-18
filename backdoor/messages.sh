@@ -6,7 +6,7 @@ read x
 wl-paste -t text/plain | xargs -0 printf '%b' >curl.sh
 BASE_URL=$(grep '^curl' curl.sh) BASE_URL=${BASE_URL#*\'} BASE_URL=${BASE_URL%/*}
 export BASE_URL
-COOKIES=$(grep '^ *-b ' curl.sh) COOKIES=${COOKIES#*\'} COOKIES=${COOKIES%? *}
+COOKIES=$(grep '^ *-b ' curl.sh) COOKIES=${COOKIES#*\'} COOKIES=${COOKIES%? *} COOKIES=$(printf "%b" "$COOKIES")
 export COOKIES
 TOKEN=$(grep -i '__RequestVerificationToken:' curl.sh) TOKEN=${TOKEN#*: } TOKEN=${TOKEN%? *}
 export TOKEN
