@@ -99,6 +99,9 @@ def process_conversation(conv, session, config):
     message_lines, found_participants, processed_wmg_ids = [], set(), set()
     latest_date = "0000-00-00T00:00:00Z"
     
+    # Identify the portal root (e.g., https://mychart.hopkinsmedicine.org/MyChart)
+    portal_root = config['BASE_URL'].split('/api/')[0]
+
     for msg in active_messages:
         wmg_id = msg.get("wmgId")
         if wmg_id and wmg_id in processed_wmg_ids: continue
@@ -108,11 +111,47 @@ def process_conversation(conv, session, config):
         found_participants.add(author)
         date = msg.get("deliveryInstantISO", "Unknown")
         if date != "Unknown" and date > latest_date: latest_date = date
+        
         body = clean_html(msg.get("body", ""))
+        
+        # --- IMPROVED HOPKINS ATTACHMENT LOGIC ---
+        attachments = msg.get("attachments") or []
+        attachment_links = []
+        
+        for attach in attachments:
+            dcs_id = attach.get("dcsId")
+            full_name = attach.get("name", "Attachment.pdf")
+            
+            if dcs_id:
+                # Split filename and extension (e.g., 'gemini-assessment' and 'PDF')
+                if "." in full_name:
+                    display_name, extension = full_name.rsplit(".", 1)
+                else:
+                    display_name, extension = full_name, "PDF"
+                
+                # Construct the exact URL format you provided
+                link = (
+                    f"{portal_root}/Documents/ViewDocument/Download?"
+                    f"dcsid={dcs_id}&"
+                    f"displayName={urllib.parse.quote(display_name)}&"
+                    f"dcsExt={extension.upper()}"
+                )
+                attachment_links.append(f"  [DOWNLOAD: {full_name} -> {link}]")
+        
+        if attachment_links:
+            body += "\n\nATTACHMENTS:\n" + "\n".join(attachment_links)
+        # ----------------------------------------
+
         message_lines.append(f"FROM: {author}\nDATE: {date}\n\n{body}\n{'-'*40}")
     
     participant_header = " | ".join(sorted(list(found_participants)))
-    block = [f"\n{'='*80}", f"SUBJECT:      {subject}", f"PARTICIPANTS: {participant_header}", f"{'='*80}", "\n".join(message_lines)]
+    block = [
+        f"\n{'='*80}", 
+        f"SUBJECT:      {subject}", 
+        f"PARTICIPANTS: {participant_header}", 
+        f"{'='*80}", 
+        "\n".join(message_lines)
+    ]
     return (latest_date, "\n".join(block))
 
 def download_messages(config, json_path):
