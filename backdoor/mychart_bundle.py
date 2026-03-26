@@ -8,8 +8,6 @@ import uuid
 import re
 import html
 import sys
-import shlex
-import codecs
 import urllib.parse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -21,32 +19,29 @@ def log(msg):
     sys.stderr.flush()
 
 # --- ROBUST PARSING ---
-def parse_curl(curl_str):
-    log("Starting robust cURL parse...")
-    try:
-        curl_str = curl_str.replace('\\\n', ' ').replace('\\ ', ' ')
-        parts = shlex.split(curl_str, posix=True)
-        url, token, cookies = "", "", ""
-        
-        for i, part in enumerate(parts):
-            if part.startswith('http') and not url:
-                url = part.rsplit('/', 1)[0]
-            if part.lower() in ['-h', '--header']:
-                h_parts = parts[i+1].split(':', 1)
-                if len(h_parts) == 2 and h_parts[0].strip().lower() == '__requestverificationtoken':
-                    token = h_parts[1].strip()
-            if part.lower() in ['-b', '--cookie']:
-                raw_cookies = parts[i+1].strip()
-                if raw_cookies.startswith('$'):
-                    cookies = codecs.decode(raw_cookies[1:], 'unicode_escape')
-                else:
-                    cookies = raw_cookies
-        
-        log(f"Parsed URL: {url} | Token: {len(token)} chars | Cookies: {len(cookies)} chars")
-        return url, token, cookies
-    except Exception as e:
-        log(f"Parse error: {str(e)}")
-        return None, None, None
+def parse_curl():
+
+    if os.environ.get("REQUEST_METHOD") == "POST":
+        length = int(os.environ.get("CONTENT_LENGTH", 0))
+        body = sys.stdin.read(length)
+        params = urllib.parse.parse_qs(body)
+        curl_input = params.get("clipboard_content", [None])[0]
+    else:
+        curl_input = sys.stdin.read()
+
+    url_match = re.search(r"curl ['\"]([^'\"]+)['\"]", curl_input)
+    url_match = url_match.group(1).strip().rsplit('/', 1)[0]
+
+    auth_match = re.search(r"-H ['\"]__requestverificationtoken:\s*([^'\"]+)['\"]", curl_input, re.IGNORECASE)
+    auth_match = auth_match.group(1).strip()
+
+    cookie_match = re.search(r"-b ['\"]([^'\"]+)['\"]", curl_input)
+    if not cookie_match:
+        cookie_match = re.search(r"-H ['\"]cookie:\s*([^'\"]+)['\"]", curl_input, re.IGNORECASE)
+    cookie_match = cookie_match.group(1).strip()
+
+    print(url_match, auth_match, cookie_match)
+    return url_match, auth_match, cookie_match 
 
 # --- CORE LOGIC (STRICT PRESERVATION) ---
 
@@ -252,22 +247,7 @@ def hydrate(config, json_path):
 # --- REFACTORED CGI ENTRY ---
 
 if __name__ == "__main__":
-    raw_curl = None
-    if os.environ.get("REQUEST_METHOD") == "POST":
-        try:
-            length = int(os.environ.get("CONTENT_LENGTH", 0))
-            body = sys.stdin.read(length)
-            params = urllib.parse.parse_qs(body)
-            raw_curl = params.get("clipboard_content", [None])[0]
-        except Exception as e:
-            log(f"POST parse error: {e}")
-
-    if not raw_curl:
-        print("Content-Type: text/html\n")
-        print("<html><body><form method='POST'>Paste cURL Command:<br><textarea name='clipboard_content' rows='12' cols='100'></textarea><br><input type='submit' value='Process'></form></body></html>")
-        sys.exit(0)
-
-    base, token, cookies = parse_curl(raw_curl)
+    base, token, cookies = parse_curl()
     if not (base and token and cookies):
         print("Content-Type: text/html\n\n<h1>Parse Error</h1><p>Check stderr logs.</p>")
         sys.exit(1)
