@@ -40,7 +40,6 @@ def parse_curl():
         cookie_match = re.search(r"-H ['\"]cookie:\s*([^'\"]+)['\"]", curl_input, re.IGNORECASE)
     cookie_match = cookie_match.group(1).strip()
 
-    print(url_match, auth_match, cookie_match)
     return url_match, auth_match, cookie_match 
 
 # --- CORE LOGIC (STRICT PRESERVATION) ---
