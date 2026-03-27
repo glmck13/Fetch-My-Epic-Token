@@ -30,15 +30,18 @@ def parse_curl():
         curl_input = sys.stdin.read()
 
     url_match = re.search(r"curl ['\"]([^'\"]+)['\"]", curl_input)
-    url_match = url_match.group(1).strip().rsplit('/', 1)[0]
+    if url_match:
+        url_match = url_match.group(1).strip().rsplit('/', 1)[0]
 
     auth_match = re.search(r"-H ['\"]__requestverificationtoken:\s*([^'\"]+)['\"]", curl_input, re.IGNORECASE)
-    auth_match = auth_match.group(1).strip()
+    if auth_match:
+        auth_match = auth_match.group(1).strip()
 
     cookie_match = re.search(r"-b ['\"]([^'\"]+)['\"]", curl_input)
     if not cookie_match:
         cookie_match = re.search(r"-H ['\"]cookie:\s*([^'\"]+)['\"]", curl_input, re.IGNORECASE)
-    cookie_match = cookie_match.group(1).strip()
+    if cookie_match:
+        cookie_match = cookie_match.group(1).strip()
 
     return url_match, auth_match, cookie_match 
 
@@ -248,7 +251,7 @@ def hydrate(config, json_path):
 if __name__ == "__main__":
     base, token, cookies = parse_curl()
     if not (base and token and cookies):
-        print("Content-Type: text/html\n\n<h1>Parse Error</h1><p>Check stderr logs.</p>")
+        print("Content-Type: text/html\n\n<h1>Parse Error</h1>")
         sys.exit(1)
 
     config = {
