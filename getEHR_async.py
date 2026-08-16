@@ -141,11 +141,20 @@ async def main():
                     order = x.get("basedOn", [{}])[0].get("display", "")
                     dt, test = x.get("effectiveDateTime", ""), x["code"].get("text", "")
                     
-                    # Restored original logic to avoid .replace() on non-strings
-                    if x.get("valueQuantity"):
-                        val = x["valueQuantity"]["value"]
-                    elif x.get("valueString"):
-                        val = x["valueString"].replace('"', "'")
+                    if "valueQuantity" in x and x["valueQuantity"]:
+                        val = x["valueQuantity"].get("value", "")
+                    elif "valueRatio" in x and x["valueRatio"]:
+                        ratio = x["valueRatio"]
+                        num = ratio.get("numerator", {}).get("value", "")
+                        den = ratio.get("denominator", {}).get("value", "")
+                        val = f"{num}/{den}" if num != "" or den != "" else ""
+                    elif "valueRange" in x and x["valueRange"]:
+                        v_range = x["valueRange"]
+                        low = v_range.get("low", {}).get("value", "")
+                        high = v_range.get("high", {}).get("value", "")
+                        val = f"{low}-{high}" if low != "" or high != "" else ""
+                    elif "valueString" in x and x["valueString"] is not None:
+                        val = str(x["valueString"]).replace('"', "'")
                     else:
                         val = ""
                     
