@@ -20,35 +20,46 @@ def log(msg):
 
 # --- ROBUST PARSING ---
 def parse_curl():
-
     if os.environ.get("REQUEST_METHOD") == "POST":
-        length = int(os.environ.get("CONTENT_LENGTH", 0))
-        body = sys.stdin.read(length)
+        try:
+            length = int(os.environ.get("CONTENT_LENGTH", 0))
+            body = sys.stdin.read(length) if length > 0 else ""
+        except Exception as e:
+            log(f"Error reading stdin: {e}")
+            body = ""
         params = urllib.parse.parse_qs(body)
-        curl_input = params.get("clipboard_content", [None])[0]
+        curl_input = params.get("clipboard_content", [""])[0] or ""
     else:
         curl_input = sys.stdin.read()
 
-    url_match = re.search(r"curl ['\"]([^'\"]+)['\"]", curl_input)
+    # Extract base URL
+    url_match = re.search(r"curl.*?['\"]([^'\"]+)['\"]", curl_input, re.DOTALL)
+    base_url = None
     if url_match:
-        url_match = url_match.group(1).strip().rsplit('/', 1)[0]
+        full_url = url_match.group(1).strip()
+        if "/api/conversations" in full_url:
+            base_url = full_url.split("/api/conversations")[0] + "/api/conversations"
+        else:
+            base_url = full_url.rsplit('/', 1)[0]
 
-    auth_match = re.search(r"-H ['\"]__requestverificationtoken:\s*([^'\"]+)['\"]", curl_input, re.IGNORECASE)
-    if auth_match:
-        auth_match = auth_match.group(1).strip()
+    # Extract __requestverificationtoken header
+    token_match = re.search(r"-H ['\"]__requestverificationtoken:\s*([^'\"]+)['\"]", curl_input, re.IGNORECASE)
+    auth_token = token_match.group(1).strip() if token_match else None
 
+    # Extract cookie header (check -b or -H 'cookie: ...')
     cookie_match = re.search(r"-b ['\"]([^'\"]+)['\"]", curl_input)
     if not cookie_match:
         cookie_match = re.search(r"-H ['\"]cookie:\s*([^'\"]+)['\"]", curl_input, re.IGNORECASE)
-    if cookie_match:
-        cookie_match = cookie_match.group(1).strip()
+    
+    cookies = cookie_match.group(1).strip() if cookie_match else None
 
-    return url_match, auth_match, cookie_match 
+    return base_url, auth_token, cookies
 
-# --- CORE LOGIC (STRICT PRESERVATION) ---
+# --- CORE LOGIC ---
 
 def clean_html(raw_html):
-    if not raw_html: return ""
+    if not raw_html: 
+        return ""
     clean_text = re.sub(r'<style.*?>.*?</style>', '', raw_html, flags=re.DOTALL | re.IGNORECASE)
     clean_text = re.sub(r'<[^<]+?>', '', clean_text)
     clean_text = html.unescape(clean_text)
@@ -58,11 +69,14 @@ def clean_html(raw_html):
 def resolve_author_name(msg, name_map, viewer_keys, audience, org_id):
     author_obj = msg.get("author", {})
     wpr_key = author_obj.get("wprKey") or author_obj.get("empKey") or ""
-    if wpr_key in viewer_keys: return "Me (Patient)"
-    if wpr_key in name_map: return name_map[wpr_key]
+    if wpr_key in viewer_keys: 
+        return "Me (Patient)"
+    if wpr_key in name_map: 
+        return name_map[wpr_key]
     if org_id and org_id in wpr_key:
         stripped_key = wpr_key.replace(f"{org_id}_", "")
-        if stripped_key in name_map: return name_map[stripped_key]
+        if stripped_key in name_map: 
+            return name_map[stripped_key]
     for person in audience:
         if wpr_key in [person.get("providerId"), person.get("empId")]:
             return person.get("name")
@@ -76,15 +90,20 @@ def get_full_text(hth_id, org_id, session, config):
         try:
             url = f"{config['BASE_URL']}/GetConversationMessages?cb={nonce}"
             resp = session.post(url, headers=config['HEADERS'], json=payload, timeout=20)
-            if resp.status_code != 200: break
+            if resp.status_code != 200: 
+                break
             batch = resp.json().get("messages", [])
-            if not batch: break
+            if not batch: 
+                break
             all_msgs.extend(batch)
             new_anchor = batch[-1].get("deliveryInstantISO")
-            if not new_anchor or new_anchor == anchor: break
+            if not new_anchor or new_anchor == anchor: 
+                break
             anchor = new_anchor
             time.sleep(0.2) 
-        except: break
+        except Exception as e:
+            log(f"Error fetching conversation messages for {hth_id}: {e}")
+            break
     return all_msgs
 
 def process_conversation(conv, session, config):
@@ -96,22 +115,25 @@ def process_conversation(conv, session, config):
     message_lines, found_participants, processed_wmg_ids = [], set(), set()
     latest_date = "0000-00-00T00:00:00Z"
     
-    # Identify the portal root (e.g., https://mychart.hopkinsmedicine.org/MyChart)
+    # Identify the portal root
     portal_root = config['BASE_URL'].split('/api/')[0]
 
     for msg in active_messages:
         wmg_id = msg.get("wmgId")
-        if wmg_id and wmg_id in processed_wmg_ids: continue
-        if wmg_id: processed_wmg_ids.add(wmg_id)
+        if wmg_id and wmg_id in processed_wmg_ids: 
+            continue
+        if wmg_id: 
+            processed_wmg_ids.add(wmg_id)
 
         author = resolve_author_name(msg, conv.get("userOverrideNames", {}), conv.get("viewerKeys", []), conv.get("audience", []), org_id)
         found_participants.add(author)
         date = msg.get("deliveryInstantISO", "Unknown")
-        if date != "Unknown" and date > latest_date: latest_date = date
+        if date != "Unknown" and date > latest_date: 
+            latest_date = date
         
         body = clean_html(msg.get("body", ""))
         
-        # --- IMPROVED HOPKINS ATTACHMENT LOGIC ---
+        # Attachments processing
         attachments = msg.get("attachments") or []
         attachment_links = []
         
@@ -120,13 +142,11 @@ def process_conversation(conv, session, config):
             full_name = attach.get("name", "Attachment.pdf")
             
             if dcs_id:
-                # Split filename and extension (e.g., 'gemini-assessment' and 'PDF')
                 if "." in full_name:
                     display_name, extension = full_name.rsplit(".", 1)
                 else:
                     display_name, extension = full_name, "PDF"
                 
-                # Construct the exact URL format you provided
                 link = (
                     f"{portal_root}/Documents/ViewDocument/Download?"
                     f"dcsid={dcs_id}&"
@@ -137,7 +157,6 @@ def process_conversation(conv, session, config):
         
         if attachment_links:
             body += "\n\nATTACHMENTS:\n" + "\n".join(attachment_links)
-        # ----------------------------------------
 
         message_lines.append(f"FROM: {author}\nDATE: {date}\n\n{body}\n{'-'*40}")
     
@@ -209,11 +228,13 @@ def download_messages(config, json_path):
                     new_count += 1
             
             log(f"{tag_label} Page {page_num}: Received {len(batch)} items ({new_count} new).")
-            if new_count == 0 and page_num > 1: break
+            if new_count == 0 and page_num > 1: 
+                break
             
             last_ts = batch[-1]["messages"][-1].get("deliveryInstantISO")
             local_anchor = last_ts
-            for k in org_keys: anchors[k] = last_ts
+            for k in org_keys: 
+                anchors[k] = last_ts
             page_num += 1
             time.sleep(1.0)
 
@@ -246,7 +267,7 @@ def hydrate(config, json_path):
     unsorted_results.sort(key=lambda x: x[0], reverse=True)
     return "\n".join(res[1] for res in unsorted_results)
 
-# --- REFACTORED CGI ENTRY ---
+# --- ENTRY POINT ---
 
 if __name__ == "__main__":
     base, token, cookies = parse_curl()
