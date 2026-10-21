@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 
 import os
-import requests
+import sys
 import json
+import requests
+import shlex
 import time
 import uuid
 import re
 import html
-import sys
 import urllib.parse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -18,8 +19,8 @@ def log(msg):
     print(f"[{timestamp}] [MyChart-CGI] {msg}", file=sys.stderr)
     sys.stderr.flush()
 
-# --- ROBUST PARSING ---
 def parse_curl():
+    """Parses cURL command input from stdin or CGI POST data using the ProConnect token iteration pattern."""
     if os.environ.get("REQUEST_METHOD") == "POST":
         try:
             length = int(os.environ.get("CONTENT_LENGTH", 0))
@@ -32,26 +33,63 @@ def parse_curl():
     else:
         curl_input = sys.stdin.read()
 
-    # Extract base URL
-    url_match = re.search(r"curl.*?['\"]([^'\"]+)['\"]", curl_input, re.DOTALL)
+    if not curl_input.strip():
+        return None, None, None
+
+    headers = {}
+    raw_url = None
+
+    try:
+        tokens = shlex.split(curl_input)
+    except ValueError as e:
+        log(f"shlex parsing error: {e}")
+        return None, None, None
+
+    # ProConnect-style token iteration
+    for i, token in enumerate(tokens):
+        # Extract headers (-H / --header)
+        if token in ('-H', '--header') and i + 1 < len(tokens):
+            header_string = tokens[i + 1]
+            if ':' in header_string:
+                key, value = header_string.split(':', 1)
+                headers[key.strip().lower()] = value.strip()
+
+        # Extract cookies (-b / --cookie)
+        elif token in ('-b', '--cookie') and i + 1 < len(tokens):
+            cookie_val = tokens[i + 1].strip()
+
+            # Clean any leading '$' left over from bash $'...' quoting
+            cookie_val = cookie_val.lstrip('$')
+
+            # Decode unicode escape sequences (\u0021 -> !) if present
+            if '\\u' in cookie_val:
+                try:
+                    cookie_val = cookie_val.encode('utf-8').decode('unicode-escape')
+                except Exception as e:
+                    log(f"Warning: Unicode unescape failed for cookie: {e}")
+
+            if 'cookie' in headers:
+                headers['cookie'] += f"; {cookie_val}"
+            else:
+                headers['cookie'] = cookie_val
+
+        # Extract URL (--url or positional URL token)
+        elif token == '--url' and i + 1 < len(tokens):
+            raw_url = tokens[i + 1].strip()
+        elif not raw_url and (token.startswith("http://") or token.startswith("https://")):
+            raw_url = token.strip()
+
+    # Derive base URL for MyChart endpoints
     base_url = None
-    if url_match:
-        full_url = url_match.group(1).strip()
-        if "/api/conversations" in full_url:
-            base_url = full_url.split("/api/conversations")[0] + "/api/conversations"
+    if raw_url:
+        if "/api/conversations" in raw_url:
+            base_url = raw_url.split("/api/conversations")[0] + "/api/conversations"
         else:
-            base_url = full_url.rsplit('/', 1)[0]
+            base_url = raw_url.rsplit('/', 1)[0]
 
-    # Extract __requestverificationtoken header
-    token_match = re.search(r"-H ['\"]__requestverificationtoken:\s*([^'\"]+)['\"]", curl_input, re.IGNORECASE)
-    auth_token = token_match.group(1).strip() if token_match else None
-
-    # Extract cookie header (check -b or -H 'cookie: ...')
-    cookie_match = re.search(r"-b ['\"]([^'\"]+)['\"]", curl_input)
-    if not cookie_match:
-        cookie_match = re.search(r"-H ['\"]cookie:\s*([^'\"]+)['\"]", curl_input, re.IGNORECASE)
-    
-    cookies = cookie_match.group(1).strip() if cookie_match else None
+    # Extract target items for MyChart script compatibility
+    auth_token = headers.get('__requestverificationtoken')
+    cookies = headers.get('cookie')
 
     return base_url, auth_token, cookies
 
